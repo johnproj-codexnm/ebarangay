@@ -4,6 +4,10 @@
 
 <h2>Complaints Management</h2>
 
+<!-- Leaflet Map CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
 <style>
     .layout-wrapper {
         display: flex;
@@ -127,6 +131,97 @@
         font-size: 14px;
         line-height: 1.4;
     }
+    
+    /* Map Modal Styles */
+    .map-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .map-modal-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+    .map-modal-content {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 24px;
+        border-radius: var(--radius-xl);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        border: 1px solid var(--glass-border);
+        width: 90%;
+        max-width: 800px;
+        position: relative;
+    }
+    .map-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .map-modal-header h3 {
+        margin: 0;
+        font-size: 20px;
+        color: #1e293b;
+    }
+    .close-map-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-light);
+        padding: 0;
+        line-height: 1;
+        box-shadow: none;
+    }
+    .close-map-btn:hover {
+        color: var(--danger);
+        background: transparent;
+        transform: none;
+        box-shadow: none;
+    }
+    #map {
+        width: 100%;
+        height: 400px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--glass-border);
+        background: #e2e8f0;
+    }
+    .eta-box {
+        margin-top: 16px;
+        padding: 16px;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: var(--radius-md);
+        color: #1e3a8a;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .eta-box.loading {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.2);
+        color: #d97706;
+    }
+    .eta-box.error {
+        background: rgba(220, 38, 38, 0.1);
+        border-color: rgba(220, 38, 38, 0.2);
+        color: #dc2626;
+    }
+    /* Hide the routing instructions box */
+    .leaflet-routing-container {
+        display: none !important;
+    }
 </style>
 
 <div class="layout-wrapper">
@@ -172,8 +267,8 @@
                 <td style="font-weight:600; color:#1e293b;">{{ $complaint['title'] }}</td>
                 <td style="color:var(--text-light);">{{ $complaint['category'] }}</td>
                 <td>
-                    <a href="{{ $complaint['location'] }}" target="_blank" onclick="event.stopPropagation();" style="color:#2563eb; text-decoration:none; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> View
+                    <a href="javascript:void(0)" onclick="event.stopPropagation(); openMapModal('{{ addslashes($complaint['location']) }}')" style="color:#2563eb; text-decoration:none; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> View Map
                     </a>
                 </td>
                 <td>
@@ -266,8 +361,153 @@
     </div>
 </div>
 
+<!-- Map Modal -->
+<div class="map-modal-overlay" id="mapModal">
+    <div class="map-modal-content">
+        <div class="map-modal-header">
+            <h3>Location & ETA</h3>
+            <button class="close-map-btn" onclick="closeMapModal()">&times;</button>
+        </div>
+        <div id="map"></div>
+        <div class="eta-box loading" id="etaBox">
+            <span id="etaText">Waiting for location access...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
 <script>
 let currentComplaint = null;
+let map = null;
+let routingControl = null;
+
+function parseCoordinates(locationString) {
+    if (!locationString) return null;
+    
+    // Try to extract lat,lng from google maps url like q=lat,lng or @lat,lng
+    let match = locationString.match(/q=([-+]?\d*\.\d+|\d+),([-+]?\d*\.\d+|\d+)/);
+    if (match) return [parseFloat(match[1]), parseFloat(match[2])];
+    
+    match = locationString.match(/@([-+]?\d*\.\d+|\d+),([-+]?\d*\.\d+|\d+)/);
+    if (match) return [parseFloat(match[1]), parseFloat(match[2])];
+    
+    // Check if it's already just "lat,lng"
+    match = locationString.match(/^([-+]?\d*\.\d+|\d+)\s*,\s*([-+]?\d*\.\d+|\d+)$/);
+    if (match) return [parseFloat(match[1]), parseFloat(match[2])];
+    
+    return null;
+}
+
+function openMapModal(locationString) {
+    const coords = parseCoordinates(locationString);
+    if (!coords) {
+        alert("Invalid location format provided in the complaint.");
+        return;
+    }
+    
+    const modal = document.getElementById('mapModal');
+    modal.style.display = 'flex';
+    // Force reflow
+    void modal.offsetWidth;
+    modal.classList.add('active');
+    
+    const etaBox = document.getElementById('etaBox');
+    const etaText = document.getElementById('etaText');
+    
+    etaBox.className = 'eta-box loading';
+    etaText.innerHTML = 'Getting admin location...';
+    
+    // Initialize map if it doesn't exist
+    if (!map) {
+        map = L.map('map').setView(coords, 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+    } else {
+        // Remove existing routing control if any
+        if (routingControl) {
+            map.removeControl(routingControl);
+            routingControl = null;
+        }
+        // Remove old markers if any
+        map.eachLayer((layer) => {
+            if(layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+        map.setView(coords, 15);
+    }
+    
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 350);
+    
+    // Get Admin's current location via browser
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const adminLat = position.coords.latitude;
+            const adminLng = position.coords.longitude;
+            
+            etaText.innerHTML = 'Calculating route and ETA...';
+            
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(adminLat, adminLng),
+                    L.latLng(coords[0], coords[1])
+                ],
+                routeWhileDragging: false,
+                addWaypoints: false,
+                fitSelectedRoutes: true,
+                showAlternatives: false,
+                lineOptions: {
+                    styles: [{color: '#2563eb', opacity: 0.8, weight: 6}]
+                },
+                createMarker: function(i, wp, nWps) {
+                    const isStart = (i === 0);
+                    return L.marker(wp.latLng, {
+                        draggable: false,
+                        title: isStart ? "Admin Location" : "Complaint Location"
+                    }).bindPopup(isStart ? "<b>Your Location</b>" : "<b>Complaint Location</b>");
+                }
+            }).on('routesfound', function(e) {
+                const routes = e.routes;
+                const summary = routes[0].summary;
+                const distanceKm = (summary.totalDistance / 1000).toFixed(2);
+                const timeMinutes = Math.round(summary.totalTime / 60);
+                
+                etaBox.className = 'eta-box';
+                etaText.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>ETA: <b>${timeMinutes} mins</b> &nbsp;|&nbsp; Distance: <b>${distanceKm} km</b></span>
+                `;
+            }).on('routingerror', function() {
+                etaBox.className = 'eta-box error';
+                etaText.innerHTML = 'Could not calculate route. Please try again.';
+                L.marker(coords).addTo(map).bindPopup("Complaint Location").openPopup();
+            }).addTo(map);
+            
+        }, function(error) {
+            etaBox.className = 'eta-box error';
+            etaText.innerHTML = 'Admin location access denied or unavailable.';
+            L.marker(coords).addTo(map).bindPopup("Complaint Location").openPopup();
+        });
+    } else {
+        etaBox.className = 'eta-box error';
+        etaText.innerHTML = 'Geolocation is not supported by this browser.';
+        L.marker(coords).addTo(map).bindPopup("Complaint Location").openPopup();
+    }
+}
+
+function closeMapModal() {
+    const modal = document.getElementById('mapModal');
+    modal.classList.remove('active');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
 
 function filterComplaints() {
     let filter = document.getElementById('categoryFilter').value;
