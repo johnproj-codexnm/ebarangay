@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Register - eBarangay</title>
+    <title>Admin Register - ebarang-ay</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -147,6 +147,9 @@
     <div class="bg-logo"></div>
 
     <div class="register-card">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="/images/project-logo.png" alt="Project Logo" style="max-width: 80px; height: auto;">
+        </div>
         <h2>Create Admin Account</h2>
 
         @if(session('success'))
@@ -175,6 +178,11 @@
         </form>
 
         <a href="/admin/login" class="back-link">&larr; Back to Login</a>
+
+        <div style="text-align: center; margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <img src="/images/umingan-logo.png" alt="Umingan Logo" style="max-width: 60px; height: auto;">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e293b;">Barangay San Leon</p>
+        </div>
     </div>
 
 </body>

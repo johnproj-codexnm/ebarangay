@@ -227,8 +227,16 @@
 <div class="layout-wrapper">
     <!-- TABLE SECTION -->
     <div class="table-container card" style="margin-bottom: 0;">
-        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-            <h3 style="margin: 0; color: #1e293b; font-size: 20px;">Complaints List</h3>
+        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <h3 style="margin: 0; color: #1e293b; font-size: 20px; flex: 1; min-width: 200px;">Complaints List</h3>
+            
+            <input type="text" id="searchInput" onkeyup="filterComplaints()" placeholder="Search anything..." style="width: 250px; padding: 10px 16px; border-radius: 8px; font-size: 14px;">
+            
+            <button onclick="openDateModal()" style="background: white; color: var(--text-main); border: 1px solid var(--glass-border); padding: 10px 16px; box-shadow: none; font-size: 14px; font-weight: 500; display:flex; align-items:center; gap:6px; cursor: pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                Filter Date
+            </button>
+
             <select id="categoryFilter" onchange="filterComplaints()" style="width: auto; padding: 10px 16px; border-radius: 8px; font-size: 14px;">
                 <option value="All">All Categories</option>
                 <option value="Others">Others</option>
@@ -252,8 +260,11 @@
                 <th>Action</th>
             </tr>
 
-            @foreach($complaints as $complaint)
-            <tr class="clickable-row complaint-row" data-category="{{ $complaint['category'] }}" onclick="showComplaint(
+            @php
+                $sortedComplaints = collect($complaints)->sortByDesc('date_submitted');
+            @endphp
+            @foreach($sortedComplaints as $complaint)
+            <tr class="clickable-row complaint-row" data-category="{{ $complaint['category'] }}" data-date="{{ \Carbon\Carbon::parse($complaint['date_submitted'])->format('Y-m-d') }}" onclick="showComplaint(
                 '{{ $complaint['$id'] }}',
                 '{{ addslashes($complaint['title']) }}',
                 '{{ addslashes($complaint['description']) }}',
@@ -371,6 +382,30 @@
         <div id="map"></div>
         <div class="eta-box loading" id="etaBox">
             <span id="etaText">Waiting for location access...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Date Filter Modal -->
+<div class="map-modal-overlay" id="dateModal">
+    <div class="map-modal-content" style="max-width: 400px;">
+        <div class="map-modal-header">
+            <h3>Filter by Date</h3>
+            <button class="close-map-btn" onclick="closeDateModal()">&times;</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:#1e293b;">Start Date</label>
+                <input type="date" id="startDateFilter" style="width:100%;">
+            </div>
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:#1e293b;">End Date</label>
+                <input type="date" id="endDateFilter" style="width:100%;">
+            </div>
+            <div style="display:flex; gap: 10px; margin-top:8px;">
+                <button onclick="applyDateFilter()" style="flex:1;">Apply Filter</button>
+                <button onclick="clearDateFilter()" style="flex:1; background: #e2e8f0; color: #1e293b; box-shadow:none;">Clear</button>
+            </div>
         </div>
     </div>
 </div>
@@ -509,13 +544,57 @@ function closeMapModal() {
     }, 300);
 }
 
+// Date Filter Variables and Functions
+let currentStartDate = null;
+let currentEndDate = null;
+
+function openDateModal() {
+    const modal = document.getElementById('dateModal');
+    modal.style.display = 'flex';
+    void modal.offsetWidth;
+    modal.classList.add('active');
+}
+
+function closeDateModal() {
+    const modal = document.getElementById('dateModal');
+    modal.classList.remove('active');
+    setTimeout(() => { modal.style.display = 'none'; }, 300);
+}
+
+function applyDateFilter() {
+    currentStartDate = document.getElementById('startDateFilter').value;
+    currentEndDate = document.getElementById('endDateFilter').value;
+    closeDateModal();
+    filterComplaints();
+}
+
+function clearDateFilter() {
+    document.getElementById('startDateFilter').value = '';
+    document.getElementById('endDateFilter').value = '';
+    currentStartDate = null;
+    currentEndDate = null;
+    closeDateModal();
+    filterComplaints();
+}
+
 function filterComplaints() {
-    let filter = document.getElementById('categoryFilter').value;
+    let categoryFilter = document.getElementById('categoryFilter').value;
+    let searchText = document.getElementById('searchInput').value.toLowerCase();
     let rows = document.querySelectorAll('.complaint-row');
     
     rows.forEach(row => {
         let category = row.getAttribute('data-category');
-        if (filter === 'All' || category === filter) {
+        let rowDate = row.getAttribute('data-date');
+        let textContent = row.innerText.toLowerCase();
+        
+        let matchesCategory = (categoryFilter === 'All' || category === categoryFilter);
+        let matchesSearch = (searchText === '' || textContent.includes(searchText));
+        
+        let matchesDate = true;
+        if (currentStartDate && rowDate < currentStartDate) matchesDate = false;
+        if (currentEndDate && rowDate > currentEndDate) matchesDate = false;
+
+        if (matchesCategory && matchesSearch && matchesDate) {
             row.style.display = '';
         } else {
             row.style.display = 'none';

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - eBarangay</title>
+    <title>Admin Login - ebarang-ay</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -123,14 +123,82 @@
         button:active {
             transform: translateY(0);
         }
+
+        /* Loading Screen Styles */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #f1f5f9;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeOut 0.5s ease-in-out 2.5s forwards;
+        }
+
+        #loading-screen img {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 30px;
+            animation: pulseLogo 1.5s infinite ease-in-out;
+        }
+
+        .progress-bar-container {
+            width: 250px;
+            height: 6px;
+            background-color: rgba(37, 99, 235, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #2563eb;
+            animation: fillProgress 2s ease-in-out forwards;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+        }
+
+        @keyframes pulseLogo {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        @keyframes fillProgress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; pointer-events: none; display: none; }
+        }
     </style>
 </head>
 <body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <img src="/images/project-logo.png" alt="Loading Logo">
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
 
     <!-- Watermark Logo -->
     <div class="bg-logo"></div>
 
     <div class="login-card">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="/images/project-logo.png" alt="Project Logo" style="max-width: 80px; height: auto;">
+        </div>
         <h2>Admin Login</h2>
 
         @if(session('error'))
@@ -152,6 +220,11 @@
 
             <button type="submit">Login</button>
         </form>
+
+        <div style="text-align: center; margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <img src="/images/umingan-logo.png" alt="Umingan Logo" style="max-width: 60px; height: auto;">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e293b;">Barangay San Leon</p>
+        </div>
     </div>
 
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eBarangay Admin</title>
+    <title>ebarang-ay Admin</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,6 +81,7 @@
         .sidebar h3 {
             color: #1e293b;
             text-align: center;
+            margin-top: 5px;
             margin-bottom: 40px;
             font-weight: 800;
             letter-spacing: 1px;
@@ -104,6 +105,39 @@
             background-color: rgba(0, 0, 0, 0.04);
             color: var(--primary);
             border-left: 3px solid var(--primary);
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 0px;
+        }
+
+        .sidebar-logo img {
+            max-width: 80px;
+            height: auto;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-footer img {
+            max-width: 60px;
+            height: auto;
+        }
+
+        .sidebar-footer p {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
         }
 
         .main {
@@ -387,11 +421,19 @@
     <div class="bg-logo"></div>
 
     <div class="sidebar">
-        <h3>eBarangay</h3>
+        <div class="sidebar-logo">
+            <img src="/images/project-logo.png" alt="Project Logo">
+        </div>
+        <h3>ebarang-ay</h3>
         <a href="/admin/dashboard">Dashboard</a>
         <a href="/admin/complaints">Complaints</a>
         <a href="/admin/announcements">Announcements</a>
         <a href="#" onclick="showLogoutModal(event)">Logout</a>
+
+        <div class="sidebar-footer">
+            <img src="/images/umingan-logo.png" alt="Umingan Logo">
+            <p>Barangay San Leon</p>
+        </div>
     </div>
 
     <div class="main">
