@@ -92,7 +92,7 @@
             <th>Location</th>
         </tr>
 
-        @foreach($complaintList as $complaint)
+        @foreach(array_reverse($complaintList) as $complaint)
         <tr>
             <td style="font-weight:600; color:#1e293b;">{{ $complaint['title'] }}</td>
             <td style="color:#475569;">{{ $complaint['category'] }}</td>
