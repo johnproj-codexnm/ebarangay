@@ -69,7 +69,7 @@
     }
     .detail-row b {
         color: var(--text-light);
-        width: 110px;
+        width: 170px;
         flex-shrink: 0;
         font-weight: 600;
     }
@@ -278,9 +278,13 @@
                 <td style="font-weight:600; color:#1e293b;">{{ $complaint['title'] }}</td>
                 <td style="color:var(--text-light);">{{ $complaint['category'] }}</td>
                 <td>
-                    <a href="javascript:void(0)" onclick="event.stopPropagation(); openMapModal('{{ addslashes($complaint['location']) }}')" style="color:#2563eb; text-decoration:none; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> View Map
-                    </a>
+                    @if($complaint['location'] == 'Location not available')
+                        <span style="color:#64748b; font-size:14px; font-weight:500; font-style:italic;">Check Description</span>
+                    @else
+                        <a href="javascript:void(0)" onclick="event.stopPropagation(); openMapModal('{{ addslashes($complaint['location']) }}')" style="color:#2563eb; text-decoration:none; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> View Map
+                        </a>
+                    @endif
                 </td>
                 <td>
                     @if(strtolower($complaint['status']) == 'pending')
@@ -313,11 +317,12 @@
 
     <!-- DETAILS SECTION -->
     <div id="complaintDetails" style="display:none;">
+        <button class="close-map-btn" onclick="closeDetails()" style="position:absolute; top:24px; right:24px; font-size: 28px;">&times;</button>
         
         <div class="detail-section">
-            <h4>Complaint Details</h4>
+            <h4 style="padding-right: 30px;">Complaint Details</h4>
             <div class="detail-row"><b>Title:</b> <span id="c_title"></span></div>
-            <div class="detail-row"><b>Description:</b> <span id="c_description"></span></div>
+            <div class="detail-row"><b>Description/Landmark:</b> <span id="c_description"></span></div>
             <div class="detail-row"><b>Category:</b> <span id="c_category"></span></div>
             <div class="detail-row"><b>Location:</b> <span id="c_location"></span></div>
             <div class="detail-row"><b>Status:</b> <span id="c_status" style="font-weight:600;"></span></div>
@@ -600,6 +605,10 @@ function filterComplaints() {
             row.style.display = 'none';
         }
     });
+}
+
+function closeDetails() {
+    document.getElementById("complaintDetails").style.display = "none";
 }
 
 function showComplaint(id,title,description,category,location,status,name,contact,address){
